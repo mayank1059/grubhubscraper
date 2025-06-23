@@ -78,8 +78,9 @@ def init_browser(headless: bool = True) -> webdriver.Chrome:
     # User agent
     options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     
-    # Window size
+    # Window size - important for content loading
     options.add_argument("--window-size=1920,1080")
+    options.add_argument("--start-maximized")
     
     # Chrome binary path for deployment environments (Debian/Streamlit Cloud)
     chrome_binary = os.environ.get('CHROME_BINARY_PATH')
@@ -725,8 +726,54 @@ def extract_items_then_map_categories(browser: webdriver.Chrome) -> Dict[str, Li
 
 def extract_menu_categories(browser: webdriver.Chrome, soup: BeautifulSoup) -> Dict[str, List[Dict]]:
     """Extract menu data maintaining category structure."""
-    # Use combined approach - extract all items first, then categories, then map them
-    print("Using combined extraction approach...")
+    # First try a simple direct extraction
+    print("Trying direct DOM extraction...")
+    menu_categories = {}
+    
+    # Find all categories and items directly
+    all_categories = soup.find_all("h3", {"data-testid": "menuSection-title"})
+    all_items = soup.find_all("article", {"data-testid": "restaurant-menu-item"})
+    
+    print(f"Direct extraction found: {len(all_categories)} categories, {len(all_items)} items")
+    
+    if all_categories and all_items:
+        # Simple approach: assign items to nearest category
+        current_category = "Uncategorized"
+        
+        # Get all elements with their positions
+        elements = []
+        
+        for cat in all_categories:
+            cat_text = cat.get_text(strip=True)
+            if cat_text:
+                elements.append(('category', cat_text, cat))
+        
+        for item in all_items:
+            if 'stencil' not in str(item.get('class', [])):
+                item_data = extract_item_data(item)
+                if item_data and item_data.get('name'):
+                    elements.append(('item', item_data, item))
+        
+        # Sort by DOM position (simple approach)
+        for elem_type, data, elem in elements:
+            if elem_type == 'category':
+                current_category = data
+                if current_category not in menu_categories:
+                    menu_categories[current_category] = []
+                    print(f"  Category: {current_category}")
+            elif elem_type == 'item' and current_category:
+                menu_categories[current_category].append(data)
+        
+        # Remove empty categories
+        menu_categories = {k: v for k, v in menu_categories.items() if v}
+        
+        if menu_categories:
+            total_items = sum(len(items) for items in menu_categories.values())
+            print(f"Direct extraction successful: {len(menu_categories)} categories, {total_items} items")
+            return menu_categories
+    
+    # If direct extraction fails, use combined approach
+    print("Direct extraction failed, using combined extraction approach...")
     menu_categories = extract_items_then_map_categories(browser)
     
     if menu_categories:
@@ -881,6 +928,19 @@ def scrape_restaurant_data(url: str, headless: bool = True, timeout: int = 30) -
         
         # Parse the page
         soup = BeautifulSoup(browser.page_source, "html.parser")
+        
+        # Debug: Save page source
+        print(f"Page title: {browser.title}")
+        print(f"Current URL: {browser.current_url}")
+        
+        # Check if we're on the right page
+        if "grubhub.com" not in browser.current_url:
+            print("WARNING: Not on Grubhub page!")
+            
+        # Debug: Check for key elements
+        menu_items = browser.find_elements(By.CSS_SELECTOR, "[data-testid='restaurant-menu-item']")
+        categories = browser.find_elements(By.CSS_SELECTOR, "[data-testid='menuSection-title']")
+        print(f"Debug: Found {len(menu_items)} menu items and {len(categories)} categories in DOM")
         
         # Extract business information
         print("Extracting business information...")
