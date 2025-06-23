@@ -21,6 +21,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+import chromedriver_autoinstaller
 
 
 def clear_chromedriver_cache():
@@ -97,39 +98,21 @@ def init_browser(headless: bool = True) -> webdriver.Chrome:
         options.binary_location = '/usr/bin/chromium-browser'
         print("Using Chromium browser")
     
-    # ChromeDriver setup for Streamlit Cloud (Debian) - Force latest version
-    print("Setting up ChromeDriver...")
+    # ChromeDriver setup using chromedriver_autoinstaller
+    print("Setting up ChromeDriver with chromedriver_autoinstaller...")
     try:
-        # Try to use system chromedriver first (for deployment)
-        chromedriver_path = os.environ.get('CHROMEDRIVER_PATH')
-        if chromedriver_path and os.path.exists(chromedriver_path):
-            service = Service(chromedriver_path)
-            print(f"Using ChromeDriver from env: {chromedriver_path}")
-        elif os.path.exists('/usr/bin/chromedriver'):
-            service = Service('/usr/bin/chromedriver')
-            print("Using system ChromeDriver: /usr/bin/chromedriver")
-        elif os.path.exists('/usr/local/bin/chromedriver'):
-            service = Service('/usr/local/bin/chromedriver')
-            print("Using local ChromeDriver: /usr/local/bin/chromedriver")
+        driver_path = chromedriver_autoinstaller.install()
+        if driver_path:
+            service = Service(driver_path)
+            print(f"✅ Using chromedriver_autoinstaller driver at: {driver_path}")
         else:
-            # Force fresh download of latest ChromeDriver
-            print("No system ChromeDriver found, downloading latest version...")
-            clear_chromedriver_cache()  # Clear old cached versions
-            
-            try:
-                # Try latest version first
-                driver_path = ChromeDriverManager(version="LATEST").install()
-                service = Service(driver_path)
-                print(f"✅ Downloaded latest ChromeDriver: {driver_path}")
-            except Exception as latest_error:
-                print(f"Latest version failed: {latest_error}")
-                # Fallback to default version
-                driver_path = ChromeDriverManager().install()
-                service = Service(driver_path)
-                print(f"✅ Downloaded default ChromeDriver: {driver_path}")
-                
-    except Exception as e:
-        print(f"ChromeDriver setup error: {e}")
+            print("chromedriver_autoinstaller did not return a path, falling back...")
+            service = None
+    except Exception as auto_error:
+        print(f"chromedriver_autoinstaller failed: {auto_error}")
+        service = None
+    
+    if service is None:
         print("Final fallback to fresh ChromeDriver download...")
         try:
             clear_chromedriver_cache()
