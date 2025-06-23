@@ -86,176 +86,203 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Custom CSS for better styling and text visibility
 st.markdown("""
 <style>
+    /* Force all text to be dark on white background */
+    .main .block-container {
+        background-color: #ffffff !important;
+        color: #1f1f1f !important;
+    }
+    
+    /* Header styling */
     .main-header {
         background: linear-gradient(90deg, #ff6b35, #f7931e);
-        padding: 1rem;
+        padding: 2rem;
         border-radius: 10px;
-        color: white;
+        color: white !important;
         text-align: center;
         margin-bottom: 2rem;
     }
-    /* Metric cards - light theme */
-    [data-theme="light"] .metric-card {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #ff6b35;
-        margin: 0.5rem 0;
-    }
-    [data-theme="light"] .metric-card h4 {
-        color: #ff6b35;
-        margin: 0 0 0.5rem 0;
-    }
-    [data-theme="light"] .metric-card h2 {
-        color: #333;
+    
+    .main-header h1 {
+        color: white !important;
         margin: 0;
-    }
-    [data-theme="light"] .metric-card p {
-        color: #666;
-        margin: 0.5rem 0 0 0;
+        font-size: 2.5rem;
     }
     
-    /* Metric cards - dark theme */
-    [data-theme="dark"] .metric-card {
-        background: #2d3748;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #ff6b35;
-        margin: 0.5rem 0;
-    }
-    [data-theme="dark"] .metric-card h4 {
-        color: #ff8c42;
-        margin: 0 0 0.5rem 0;
-    }
-    [data-theme="dark"] .metric-card h2 {
-        color: #fff;
-        margin: 0;
-    }
-    [data-theme="dark"] .metric-card p {
-        color: #cbd5e0;
+    .main-header p {
+        color: white !important;
         margin: 0.5rem 0 0 0;
+        font-size: 1.2rem;
     }
     
-    /* Fallback metric cards using CSS variables */
+    /* Metric cards with high contrast */
     .metric-card {
-        background: var(--card-bg, #f8f9fa);
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #ff6b35;
-        margin: 0.5rem 0;
+        background: #f8f9fa !important;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        margin: 1rem 0;
+        text-align: center;
     }
+    
     .metric-card h4 {
-        color: var(--accent-color, #ff6b35);
+        color: #495057 !important;
         margin: 0 0 0.5rem 0;
+        font-weight: 600;
     }
+    
     .metric-card h2 {
-        color: var(--text-color, #333);
-        margin: 0;
+        color: #ff6b35 !important;
+        margin: 0.5rem 0;
+        font-weight: bold;
+        font-size: 2rem;
     }
+    
     .metric-card p {
-        color: var(--muted-text-color, #666);
-        margin: 0.5rem 0 0 0;
+        color: #6c757d !important;
+        margin: 0;
+        font-size: 0.9rem;
     }
     
-    /* CSS variables for theme adaptation */
-    :root {
-        --card-bg: #f8f9fa;
-        --accent-color: #ff6b35;
-    }
-    
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --card-bg: #2d3748;
-            --accent-color: #ff8c42;
-        }
-    }
+    /* Success cards */
     .success-card {
-        background: #d4edda;
-        border: 1px solid #c3e6cb;
+        background: #d1f2eb !important;
+        border: 2px solid #a3e4d7;
         border-radius: 8px;
         padding: 1rem;
         margin: 0.5rem 0;
     }
+    
     .success-card h4 {
-        color: #155724;
+        color: #0e6b47 !important;
         margin: 0 0 0.5rem 0;
-    }
-    .success-card p {
-        color: #155724;
-        margin: 0.3rem 0;
-    }
-    .success-card strong {
-        color: #0c4128;
-    }
-    .error-card {
-        background: #f8d7da;
-        border: 1px solid #f5c6cb;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-    }
-    .error-card h4 {
-        color: #721c24;
-        margin: 0 0 0.5rem 0;
-    }
-    .error-card p {
-        color: #721c24;
-        margin: 0.3rem 0;
-    }
-    .error-card strong {
-        color: #491217;
-    }
-    .stButton > button {
-        background: linear-gradient(90deg, #ff6b35, #f7931e);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.5rem 2rem;
         font-weight: bold;
     }
+    
+    .success-card p {
+        color: #0e6b47 !important;
+        margin: 0.25rem 0;
+    }
+    
+    .success-card strong {
+        color: #0e6b47 !important;
+    }
+    
+    /* Error cards */
+    .error-card {
+        background: #fadbd8 !important;
+        border: 2px solid #f5b7b1;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+    }
+    
+    .error-card h4 {
+        color: #922b21 !important;
+        margin: 0 0 0.5rem 0;
+        font-weight: bold;
+    }
+    
+    .error-card p {
+        color: #922b21 !important;
+        margin: 0.25rem 0;
+    }
+    
+    .error-card strong {
+        color: #922b21 !important;
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background: linear-gradient(90deg, #ff6b35, #f7931e) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 2rem !important;
+        font-weight: bold !important;
+    }
+    
     .stButton > button:hover {
-        background: linear-gradient(90deg, #e55a2b, #e6841a);
-        transform: translateY(-1px);
-    }
-    /* Fix text visibility for both light and dark themes */
-    [data-theme="light"] .stMarkdown, 
-    [data-theme="light"] .stText, 
-    [data-theme="light"] p, 
-    [data-theme="light"] div, 
-    [data-theme="light"] span, 
-    [data-theme="light"] label {
-        color: #333 !important;
+        background: linear-gradient(90deg, #e55a2b, #e6841a) !important;
+        transform: translateY(-1px) !important;
     }
     
-    [data-theme="dark"] .stMarkdown, 
-    [data-theme="dark"] .stText, 
-    [data-theme="dark"] p, 
-    [data-theme="dark"] div, 
-    [data-theme="dark"] span, 
-    [data-theme="dark"] label {
-        color: #fff !important;
+    /* Force dark text everywhere */
+    .stMarkdown, .stText, p, div, span, label, 
+    h1, h2, h3, h4, h5, h6 {
+        color: #1f1f1f !important;
     }
     
-    /* Headers for both themes */
-    [data-theme="light"] h1, 
-    [data-theme="light"] h2, 
-    [data-theme="light"] h3, 
-    [data-theme="light"] h4, 
-    [data-theme="light"] h5, 
-    [data-theme="light"] h6 {
-        color: #333 !important;
+    /* Sidebar text */
+    .css-1d391kg * {
+        color: #1f1f1f !important;
     }
     
-    [data-theme="dark"] h1, 
-    [data-theme="dark"] h2, 
-    [data-theme="dark"] h3, 
-    [data-theme="dark"] h4, 
-    [data-theme="dark"] h5, 
-    [data-theme="dark"] h6 {
-        color: #fff !important;
+    /* Input fields */
+    .stTextInput > div > div > input {
+        color: #1f1f1f !important;
+        background-color: white !important;
+        border: 2px solid #dee2e6 !important;
+    }
+    
+    .stTextArea > div > div > textarea {
+        color: #1f1f1f !important;
+        background-color: white !important;
+        border: 2px solid #dee2e6 !important;
+    }
+    
+    .stSelectbox > div > div > select {
+        color: #1f1f1f !important;
+        background-color: white !important;
+    }
+    
+    /* Alert messages */
+    .stAlert > div {
+        color: #1f1f1f !important;
+    }
+    
+    .stSuccess > div {
+        color: #0e6b47 !important;
+        background-color: #d1f2eb !important;
+    }
+    
+    .stError > div {
+        color: #922b21 !important;
+        background-color: #fadbd8 !important;
+    }
+    
+    .stWarning > div {
+        color: #b7950b !important;
+        background-color: #fcf3cf !important;
+    }
+    
+    .stInfo > div {
+        color: #1b4f72 !important;
+        background-color: #d6eaf8 !important;
+    }
+    
+    /* Expander styling */
+    .streamlit-expanderHeader {
+        color: #1f1f1f !important;
+        background-color: #f8f9fa !important;
+    }
+    
+    .streamlit-expanderContent {
+        color: #1f1f1f !important;
+        background-color: white !important;
+    }
+    
+    /* Override any remaining styling issues */
+    * {
+        color: #1f1f1f !important;
+    }
+    
+    /* Exceptions for elements that should stay white text */
+    .main-header *, 
+    .stButton > button * {
+        color: white !important;
     }
     
     /* Form labels for both themes */
