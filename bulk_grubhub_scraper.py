@@ -78,31 +78,60 @@ def init_browser(headless: bool = True) -> webdriver.Chrome:
     elif os.path.exists('/usr/bin/chromium-browser'):
         options.binary_location = '/usr/bin/chromium-browser'
     
-    # ChromeDriver setup
+    # ChromeDriver setup for Streamlit Cloud
     try:
         # Try to use system chromedriver first (for deployment)
         chromedriver_path = os.environ.get('CHROMEDRIVER_PATH')
         if chromedriver_path and os.path.exists(chromedriver_path):
             service = Service(chromedriver_path)
-        elif os.path.exists('/usr/local/bin/chromedriver'):
-            service = Service('/usr/local/bin/chromedriver')
+        elif os.path.exists('/usr/bin/chromium-chromedriver'):
+            service = Service('/usr/bin/chromium-chromedriver')
         elif os.path.exists('/usr/bin/chromedriver'):
             service = Service('/usr/bin/chromedriver')
+        elif os.path.exists('/usr/local/bin/chromedriver'):
+            service = Service('/usr/local/bin/chromedriver')
         elif os.path.exists('/usr/bin/chromium-driver'):
             service = Service('/usr/bin/chromium-driver')
         else:
             # Fall back to ChromeDriverManager
+            print("Using ChromeDriverManager to install driver...")
             service = Service(ChromeDriverManager().install())
-    except Exception:
+    except Exception as e:
+        print(f"ChromeDriver setup error: {e}")
         # Final fallback
         service = Service(ChromeDriverManager().install())
     
-    browser = webdriver.Chrome(service=service, options=options)
-    
-    # Remove automation indicators
-    browser.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    
-    return browser
+    try:
+        browser = webdriver.Chrome(service=service, options=options)
+        
+        # Remove automation indicators
+        browser.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        
+        print("✅ Chrome browser initialized successfully")
+        return browser
+        
+    except Exception as e:
+        print(f"❌ Chrome initialization failed: {e}")
+        
+        # Try to run Chrome setup script as last resort
+        try:
+            print("🔧 Attempting to install Chrome...")
+            import subprocess
+            result = subprocess.run([sys.executable, "setup_chrome.py"], 
+                                  capture_output=True, text=True, timeout=300)
+            if result.returncode == 0:
+                print("✅ Chrome installation completed, retrying...")
+                # Retry browser initialization
+                browser = webdriver.Chrome(service=service, options=options)
+                browser.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                return browser
+            else:
+                print(f"❌ Chrome installation failed: {result.stderr}")
+        except Exception as setup_error:
+            print(f"❌ Chrome setup script failed: {setup_error}")
+        
+        # Final fallback - raise the original error
+        raise e
 
 
 def wait_for_page_load(browser: webdriver.Chrome, timeout: int = 30):
