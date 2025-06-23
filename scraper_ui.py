@@ -89,10 +89,21 @@ st.set_page_config(
 # Custom CSS for better styling and text visibility
 st.markdown("""
 <style>
+    /* FORCE DARK TEXT EVERYWHERE - NUCLEAR OPTION */
+    * {
+        color: #000000 !important;
+    }
+    
     /* Force all text to be dark on white background */
     .main .block-container {
         background-color: #ffffff !important;
-        color: #1f1f1f !important;
+        color: #000000 !important;
+    }
+    
+    /* Override Streamlit's default styling */
+    .stApp {
+        background-color: #ffffff !important;
+        color: #000000 !important;
     }
     
     /* Header styling */
@@ -209,38 +220,46 @@ st.markdown("""
         transform: translateY(-1px) !important;
     }
     
-    /* Force dark text everywhere */
-    .stMarkdown, .stText, p, div, span, label, 
-    h1, h2, h3, h4, h5, h6 {
-        color: #1f1f1f !important;
+    /* Force dark text everywhere - AGGRESSIVE */
+    .stMarkdown, .stMarkdown *, .stText, .stText *, 
+    p, div, span, label, h1, h2, h3, h4, h5, h6,
+    .css-1d391kg, .css-1d391kg *, 
+    [data-testid="stSidebar"], [data-testid="stSidebar"] *,
+    .main, .main *, .block-container, .block-container * {
+        color: #000000 !important;
     }
     
-    /* Sidebar text */
+    /* Sidebar text - FORCE BLACK */
     .css-1d391kg * {
-        color: #1f1f1f !important;
+        color: #000000 !important;
     }
     
-    /* Input fields */
+    /* Input fields - FORCE BLACK TEXT */
     .stTextInput > div > div > input {
-        color: #1f1f1f !important;
+        color: #000000 !important;
         background-color: white !important;
         border: 2px solid #dee2e6 !important;
     }
     
     .stTextArea > div > div > textarea {
-        color: #1f1f1f !important;
+        color: #000000 !important;
         background-color: white !important;
         border: 2px solid #dee2e6 !important;
     }
     
     .stSelectbox > div > div > select {
-        color: #1f1f1f !important;
+        color: #000000 !important;
         background-color: white !important;
     }
     
-    /* Alert messages */
+    /* FORCE ALL INPUT LABELS TO BE BLACK */
+    label, .stSelectbox label, .stTextInput label, .stTextArea label {
+        color: #000000 !important;
+    }
+    
+    /* Alert messages - FORCE BLACK */
     .stAlert > div {
-        color: #1f1f1f !important;
+        color: #000000 !important;
     }
     
     .stSuccess > div {
@@ -263,20 +282,29 @@ st.markdown("""
         background-color: #d6eaf8 !important;
     }
     
-    /* Expander styling */
+    /* Expander styling - FORCE BLACK */
     .streamlit-expanderHeader {
-        color: #1f1f1f !important;
+        color: #000000 !important;
         background-color: #f8f9fa !important;
     }
     
     .streamlit-expanderContent {
-        color: #1f1f1f !important;
+        color: #000000 !important;
         background-color: white !important;
     }
     
-    /* Override any remaining styling issues */
-    * {
-        color: #1f1f1f !important;
+    /* NUCLEAR OPTION - FORCE EVERYTHING BLACK */
+    body, body *, html, html *, 
+    .stApp, .stApp *, 
+    .main, .main *, 
+    .block-container, .block-container *,
+    div, div *, span, span *, p, p *, 
+    h1, h1 *, h2, h2 *, h3, h3 *, h4, h4 *, h5, h5 *, h6, h6 *,
+    label, label *, 
+    .stMarkdown, .stMarkdown *,
+    .stText, .stText *,
+    .css-1d391kg, .css-1d391kg * {
+        color: #000000 !important;
     }
     
     /* Exceptions for elements that should stay white text */
