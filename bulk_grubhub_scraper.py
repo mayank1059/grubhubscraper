@@ -225,8 +225,33 @@ def wait_for_page_load(browser: webdriver.Chrome, timeout: int = 30):
                         }
                     });
                 }
+                
+                // NUCLEAR: Force virtualized list to render ALL items
+                const virtualizedList = document.querySelector('[data-test-id="virtuoso-item-list"]');
+                if (virtualizedList) {
+                    // Override height to force all items to render
+                    virtualizedList.style.height = '50000px';
+                    virtualizedList.style.maxHeight = '50000px';
+                    
+                    // Find all data-index elements and force them visible
+                    const indexedElements = virtualizedList.querySelectorAll('[data-index]');
+                    indexedElements.forEach(el => {
+                        el.style.display = 'block';
+                        el.style.visibility = 'visible';
+                        el.style.opacity = '1';
+                        el.style.height = 'auto';
+                    });
+                    
+                    console.log('Forced virtualized list to render all items');
+                }
+                
+                // Force all lazy images to load
+                document.querySelectorAll('img[loading="lazy"]').forEach(img => {
+                    img.loading = 'eager';
+                    img.src = img.src;
+                });
             """)
-            print("Triggered React update events")
+            print("Triggered React update events and forced virtualized rendering")
         except Exception as e:
             print(f"React trigger failed: {e}")
         
@@ -640,57 +665,157 @@ def extract_menu_from_page_state(browser: webdriver.Chrome) -> Dict[str, List[Di
     menu_categories = {}
     
     try:
-        # Try to find menu data in window objects
+        # Enhanced script to find ALL menu data
         script = """
-        // Look for common menu data patterns in window object
-        for (let key in window) {
-            if (key.includes('menu') || key.includes('Menu') || key.includes('restaurant')) {
-                let val = window[key];
-                if (val && typeof val === 'object') {
-                    if (val.menu || val.menuSections || val.categories) {
-                        return val;
+        // Function to extract all menu data from various sources
+        function extractAllMenuData() {
+            let allMenuData = {categories: {}, items: []};
+            
+            // Strategy 1: Find __NEXT_DATA__ (Next.js)
+            const nextDataScript = document.querySelector('script#__NEXT_DATA__');
+            if (nextDataScript) {
+                try {
+                    const nextData = JSON.parse(nextDataScript.textContent);
+                    console.log('Found __NEXT_DATA__');
+                    return nextData;
+                } catch (e) {}
+            }
+            
+            // Strategy 2: Find Redux/React state
+            const findReactState = (element) => {
+                const keys = Object.keys(element);
+                const reactKey = keys.find(key => key.startsWith('__react') || key.startsWith('_react'));
+                if (reactKey) {
+                    const fiber = element[reactKey];
+                    if (fiber && fiber.memoizedState) {
+                        return fiber.memoizedState;
+                    }
+                    if (fiber && fiber.memoizedProps) {
+                        return fiber.memoizedProps;
                     }
                 }
-            }
-        }
-        
-        // Try to find React component data
-        let reactElements = document.querySelectorAll('[data-reactroot]');
-        for (let elem of reactElements) {
-            let keys = Object.keys(elem);
-            let reactKey = keys.find(key => key.startsWith('__react'));
-            if (reactKey) {
-                let reactData = elem[reactKey];
-                if (reactData && reactData.memoizedProps) {
-                    return reactData.memoizedProps;
+                return null;
+            };
+            
+            // Strategy 3: Check window.__PRELOADED_STATE__ or similar
+            const stateKeys = Object.keys(window).filter(key => 
+                key.includes('STATE') || key.includes('INITIAL') || 
+                key.includes('PRELOAD') || key.includes('__')
+            );
+            
+            for (let key of stateKeys) {
+                if (window[key] && typeof window[key] === 'object') {
+                    console.log('Found window.' + key);
+                    return window[key];
                 }
             }
+            
+            // Strategy 4: Find Apollo Client cache
+            if (window.__APOLLO_CLIENT__) {
+                const cache = window.__APOLLO_CLIENT__.cache;
+                if (cache && cache.data && cache.data.data) {
+                    console.log('Found Apollo cache');
+                    return cache.data.data;
+                }
+            }
+            
+            // Strategy 5: Search all scripts for JSON data
+            const scripts = document.querySelectorAll('script');
+            for (let script of scripts) {
+                if (script.textContent && script.textContent.includes('menuSection') && 
+                    script.textContent.includes('menuItem')) {
+                    try {
+                        // Try to extract JSON from script
+                        const jsonMatch = script.textContent.match(/\{[\s\S]*\}/);
+                        if (jsonMatch) {
+                            const data = JSON.parse(jsonMatch[0]);
+                            if (data.menu || data.menuSections || data.restaurant) {
+                                console.log('Found menu data in script');
+                                return data;
+                            }
+                        }
+                    } catch (e) {}
+                }
+            }
+            
+            // Strategy 6: Look for Grubhub specific data structures
+            const grubhubElements = document.querySelectorAll('[data-testid*="menu"], [data-test-id*="menu"]');
+            for (let elem of grubhubElements) {
+                const state = findReactState(elem);
+                if (state) {
+                    console.log('Found React state in menu element');
+                    return state;
+                }
+            }
+            
+            return null;
         }
         
-        return null;
+        const menuData = extractAllMenuData();
+        console.log('Extracted data:', menuData);
+        return menuData;
         """
         
+        print("Executing advanced state extraction script...")
         result = browser.execute_script(script)
         
-        if result and isinstance(result, dict):
-            # Process the found data
-            menu_data = result.get('menu') or result.get('menuSections') or result.get('categories')
+        if result:
+            print(f"Found page state data: {type(result)}")
             
-            if menu_data and isinstance(menu_data, list):
-                for section in menu_data:
-                    if isinstance(section, dict) and section.get('name'):
-                        category_name = section['name']
-                        items = section.get('items', [])
+            # Process Next.js data structure
+            if isinstance(result, dict) and 'props' in result:
+                page_props = result.get('props', {}).get('pageProps', {})
+                
+                # Look for restaurant data
+                if 'restaurant' in page_props:
+                    restaurant_data = page_props['restaurant']
+                    if 'menu' in restaurant_data:
+                        menu_data = restaurant_data['menu']
                         
-                        category_items = []
-                        for item in items:
-                            if isinstance(item, dict) and item.get('name'):
-                                item_data = {
-                                    'name': item['name'],
-                                    'price': item.get('price', ''),
-                                    'description': item.get('description', ''),
-                                    'id': item.get('id', '')
-                                }
+                        # Extract categories and items
+                        if 'menuSections' in menu_data:
+                            for section in menu_data['menuSections']:
+                                category_name = section.get('name', 'Unknown')
+                                items = section.get('menuItems', [])
+                                
+                                category_items = []
+                                for item in items:
+                                    item_data = {
+                                        'name': item.get('name', ''),
+                                        'price': f"${item.get('price', {}).get('amount', 0)/100:.2f}" if 'price' in item else '',
+                                        'description': item.get('description', ''),
+                                        'id': item.get('id', ''),
+                                        'image_url': item.get('imageUrl', '')
+                                    }
+                                    if item_data['name']:
+                                        category_items.append(item_data)
+                                
+                                if category_items:
+                                    menu_categories[category_name] = category_items
+                                    print(f"  Extracted category '{category_name}' with {len(category_items)} items")
+                        
+                        return menu_categories
+            
+            # Process other data structures
+            if isinstance(result, dict):
+                # Look for menu in various places
+                menu_data = result.get('menu') or result.get('menuSections') or result.get('categories')
+                
+                if menu_data and isinstance(menu_data, list):
+                    for section in menu_data:
+                        if isinstance(section, dict) and section.get('name'):
+                            category_name = section['name']
+                            items = section.get('items', []) or section.get('menuItems', [])
+                            
+                            category_items = []
+                            for item in items:
+                                if isinstance(item, dict) and item.get('name'):
+                                    item_data = {
+                                        'name': item['name'],
+                                        'price': item.get('price', ''),
+                                        'description': item.get('description', ''),
+                                        'id': item.get('id', '')
+                                    }
                                 category_items.append(item_data)
                         
                         if category_items:
@@ -850,7 +975,17 @@ def extract_items_then_map_categories(browser: webdriver.Chrome) -> Dict[str, Li
 
 def extract_menu_categories(browser: webdriver.Chrome, soup: BeautifulSoup) -> Dict[str, List[Dict]]:
     """Extract menu data maintaining category structure."""
-    # First try a simple direct extraction
+    
+    # FIRST - Try to get menu from page's JavaScript state (most reliable for deployed)
+    print("🔍 Attempting JavaScript state extraction...")
+    menu_categories = extract_menu_from_page_state(browser)
+    
+    if menu_categories:
+        total_items = sum(len(items) for items in menu_categories.values())
+        print(f"✅ JavaScript extraction successful: {len(menu_categories)} categories, {total_items} items")
+        return menu_categories
+    
+    # SECOND - Try direct DOM extraction
     print("Trying direct DOM extraction...")
     menu_categories = {}
     
@@ -896,16 +1031,9 @@ def extract_menu_categories(browser: webdriver.Chrome, soup: BeautifulSoup) -> D
             print(f"Direct extraction successful: {len(menu_categories)} categories, {total_items} items")
             return menu_categories
     
-    # If direct extraction fails, use combined approach
+    # THIRD - Use combined approach
     print("Direct extraction failed, using combined extraction approach...")
     menu_categories = extract_items_then_map_categories(browser)
-    
-    if menu_categories:
-        return menu_categories
-    
-    # Try to get menu from page's JavaScript state
-    print("Trying to extract menu from page state...")
-    menu_categories = extract_menu_from_page_state(browser)
     
     if menu_categories:
         return menu_categories
