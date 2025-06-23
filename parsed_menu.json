@@ -1,0 +1,45 @@
+{
+  "Limited Time Offerings": [
+    {
+      "name": "Classic Burger",
+      "price": "$3.39+",
+      "description": "A classic for a reason! Checkers’ & Rally’s Classic Burger is made with our 100% beef hamburger patty\ntopped with crisp iceberg lettuce, two crinkle-cut pickles, two slices of red onion, ketchup, mustard and\nmayonnaise and served on a toasted, sesame seed bun.",
+      "image_url": "./Rally's Delivery Menu _ Order Online _ 4154 Lee Rd Cleveland _ Grubhub_files/dwm7urchxekbfphckkys",
+      "id": "Item303806701504"
+    },
+    {
+      "name": "Double Classic Cheeseburger",
+      "price": "$4.89+",
+      "description": "A classic for a reason! Checkers’ & Rally’s Classic Burger is made with our 100% beef hamburger patty\ntopped with crisp iceberg lettuce, two crinkle-cut pickles, two slices of red onion, ketchup, mustard and\nmayonnaise and served on a toasted, sesame seed bun.",
+      "image_url": "./Rally's Delivery Menu _ Order Online _ 4154 Lee Rd Cleveland _ Grubhub_files/v2kzjbyqgvdwuqbbijef",
+      "id": "Item303806701496"
+    }
+  ],
+  "All Items": [
+    {
+      "name": "Classic Burger",
+      "price": "$3.39+",
+      "description": "A classic for a reason! Checkers’ & Rally’s Classic Burger is made with our 100% beef hamburger patty\ntopped with crisp iceberg lettuce, two crinkle-cut pickles, two slices of red onion, ketchup, mustard and\nmayonnaise and served on a toasted, sesame seed bun."
+    },
+    {
+      "name": "Double Classic Cheeseburger",
+      "price": "$4.89+",
+      "description": "A classic for a reason! Checkers’ & Rally’s Classic Burger is made with our 100% beef hamburger patty\ntopped with crisp iceberg lettuce, two crinkle-cut pickles, two slices of red onion, ketchup, mustard and\nmayonnaise and served on a toasted, sesame seed bun."
+    },
+    {
+      "name": "Super Loaded Buford",
+      "price": "$8.59+",
+      "description": "Take fry-seasoned deliciousness to the next level! Checkers’ & Rally’s Super Loaded Buford is made with\ntwo large 100% beef hamburger patties topped with two slices of melted American cheese, caramelized\nonions, crispy onion tanglers, our Famous Seasoned Fries, two strips of crispy bacon, dill pickles,\nketchup, and mayo all served on a toasted, bakery-style bun."
+    },
+    {
+      "name": "Super Loaded Buford Combo",
+      "price": "$12.49+",
+      "description": "Take fry-seasoned deliciousness to the next level! Checkers’ & Rally’s Super Loaded Buford is made with\ntwo large 100% beef hamburger patties topped with two slices of melted American cheese, caramelized\nonions, crispy onion tanglers, our Famous Seasoned Fries, two strips of crispy bacon, dill pickles,\nketchup, and mayo all served on a toasted, bakery-style bun."
+    },
+    {
+      "name": "Unbeatable Meal Deal",
+      "price": "$5.29+",
+      "description": "Checkers’ & Rally’s newest Unbeatable Meal Deal  now includes all things you crave :\n\nYour choice of sandwich: Cheese Double, with more than a quarter-pound of meat or\nSpicy Chicken Sandwich\n• a value-sized order of our Famous Seasoned Fries\n• a 12 oz. icy cold soft drink\n• AND a cinnamon Apple Pie"
+    }
+  ]
+}
