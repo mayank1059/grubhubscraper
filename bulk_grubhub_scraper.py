@@ -197,7 +197,42 @@ def wait_for_page_load(browser: webdriver.Chrome, timeout: int = 30):
     
     # Wait for React to load - longer for deployed environments
     print("Waiting for React to initialize...")
-    time.sleep(5)
+    is_deployed = is_deployed_environment()
+    
+    if is_deployed:
+        print("🌐 Using enhanced loading strategy for deployed environment...")
+        time.sleep(8)
+        
+        # Force React to update by triggering events
+        try:
+            browser.execute_script("""
+                // Trigger React to re-render
+                window.dispatchEvent(new Event('resize'));
+                window.dispatchEvent(new Event('scroll'));
+                
+                // Find React root and force update if possible
+                const reactRoot = document.querySelector('#__next') || document.querySelector('#root') || document.querySelector('[data-reactroot]');
+                if (reactRoot) {
+                    const event = new Event('load', { bubbles: true });
+                    reactRoot.dispatchEvent(event);
+                }
+                
+                // Trigger any lazy loading by simulating viewport changes
+                if ('IntersectionObserver' in window) {
+                    document.querySelectorAll('*').forEach(el => {
+                        if (el.dataset && Object.keys(el.dataset).length > 0) {
+                            el.scrollIntoView({ block: 'center' });
+                        }
+                    });
+                }
+            """)
+            print("Triggered React update events")
+        except Exception as e:
+            print(f"React trigger failed: {e}")
+        
+        time.sleep(5)
+    else:
+        time.sleep(5)
     
     # Wait for menu items or menu sections to appear
     try:
@@ -209,10 +244,10 @@ def wait_for_page_load(browser: webdriver.Chrome, timeout: int = 30):
         print("Menu content detected")
     except:
         print("Menu content not found with primary selectors, waiting longer...")
-        time.sleep(8)
+        time.sleep(8 if is_deployed else 5)
     
     # Additional wait for content to stabilize - longer for deployed
-    time.sleep(5)
+    time.sleep(5 if is_deployed else 3)
     
     # Force a scroll to trigger any lazy loading
     browser.execute_script("window.scrollBy(0, 500)")
@@ -416,6 +451,69 @@ def scroll_to_load_all_items(browser: webdriver.Chrome):
     """Scroll through the page to load all menu items."""
     print("Scrolling to load all menu items...")
     
+    # For deployed environments, use a different strategy
+    is_deployed = is_deployed_environment()
+    
+    if is_deployed:
+        print("🌐 Using deployed environment scrolling strategy...")
+        
+        # Strategy 1: Find and click on each category to force loading
+        try:
+            print("Looking for category headers to expand...")
+            category_headers = browser.find_elements(By.CSS_SELECTOR, "h3[data-testid='menuSection-title']")
+            print(f"Found {len(category_headers)} category headers")
+            
+            for i, header in enumerate(category_headers):
+                try:
+                    # Scroll to category
+                    browser.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", header)
+                    time.sleep(1)
+                    
+                    # Try to click it (some sites have collapsible categories)
+                    try:
+                        header.click()
+                        time.sleep(0.5)
+                    except:
+                        pass
+                    
+                    # Scroll past it to trigger loading
+                    browser.execute_script("window.scrollBy(0, 500);")
+                    time.sleep(2)
+                    
+                    print(f"  Processed category {i+1}/{len(category_headers)}")
+                except Exception as e:
+                    print(f"  Error processing category {i+1}: {e}")
+                    continue
+                    
+        except Exception as e:
+            print(f"Category expansion strategy failed: {e}")
+        
+        # Strategy 2: Pixel-by-pixel scrolling to ensure all content loads
+        print("Starting pixel-by-pixel scroll...")
+        current_position = 0
+        scroll_increment = 200  # Smaller increments
+        max_position = browser.execute_script("return document.body.scrollHeight")
+        
+        while current_position < max_position:
+            browser.execute_script(f"window.scrollTo(0, {current_position});")
+            time.sleep(0.5)  # Short wait
+            current_position += scroll_increment
+            
+            # Update max position as content loads
+            new_max = browser.execute_script("return document.body.scrollHeight")
+            if new_max > max_position:
+                max_position = new_max
+                print(f"  Page expanded to {max_position}px")
+        
+        # Final scroll to bottom and back
+        browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
+        browser.execute_script("window.scrollTo(0, 0);")
+        time.sleep(2)
+        
+        return
+    
+    # Original logic for local environments
     # First, try to find the menu container
     menu_container = None
     try:
@@ -431,7 +529,7 @@ def scroll_to_load_all_items(browser: webdriver.Chrome):
     
     last_count = 0
     stable_count = 0
-    max_attempts = 50  # More attempts for deployed environment
+    max_attempts = 30
     
     # Initial aggressive scroll to bottom
     print("Initial scroll to bottom...")
@@ -981,12 +1079,21 @@ def scrape_restaurant_data(url: str, headless: bool = True, timeout: int = 30) -
         if total_items < 30 and len(menu_categories) < 5:
             print(f"⚠️ Only found {total_items} items in {len(menu_categories)} categories. Trying aggressive extraction...")
             
-            # Scroll through entire page multiple times
-            for i in range(5):
-                browser.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-                time.sleep(3)
-                browser.execute_script("window.scrollTo(0, 0)")
-                time.sleep(2)
+            # Save debug info for deployed environment
+            if is_deployed_environment():
+                debug_file = f"debug_partial_{url.split('/')[-1]}_{time.strftime('%Y%m%d_%H%M%S')}.html"
+                with open(debug_file, "w", encoding="utf-8") as f:
+                    f.write(browser.page_source)
+                print(f"📄 Saved partial page source to {debug_file}")
+            
+            # Nuclear option: Navigate away and back to force full reload
+            print("🔄 Trying page refresh strategy...")
+            current_url = browser.current_url
+            browser.get("about:blank")
+            time.sleep(2)
+            browser.get(current_url)
+            wait_for_page_load(browser, timeout)
+            scroll_to_load_all_items(browser)
             
             # Re-parse and try again
             soup = BeautifulSoup(browser.page_source, "html.parser")
