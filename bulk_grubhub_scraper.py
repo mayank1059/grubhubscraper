@@ -45,16 +45,17 @@ def init_browser(headless: bool = True) -> webdriver.Chrome:
     if headless:
         options.add_argument("--headless")
     
-    # Performance and stealth options
+    # Essential options for Streamlit Cloud
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--disable-web-security")
-    options.add_argument("--disable-features=VizDisplayCompositor")
+    
+    # Don't disable images or JavaScript - needed for Grubhub
+    # options.add_argument("--disable-images")  # REMOVED - images needed
+    
+    # Performance options that don't break functionality
     options.add_argument("--disable-extensions")
     options.add_argument("--disable-plugins")
-    options.add_argument("--disable-images")
-    # Note: JavaScript is required for Grubhub scraping
     options.add_argument("--disable-background-timer-throttling")
     options.add_argument("--disable-renderer-backgrounding")
     options.add_argument("--disable-backgrounding-occluded-windows")
@@ -181,15 +182,23 @@ def wait_for_page_load(browser: webdriver.Chrome, timeout: int = 30):
     # Wait for basic page structure
     wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
     
-    # Wait for menu items to appear
+    # Wait for React to load
+    time.sleep(3)
+    
+    # Wait for menu items or menu sections to appear
     try:
-        print("Found menu items using selector: [data-testid='restaurant-menu-item']")
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "[data-testid='restaurant-menu-item']")))
+        print("Waiting for menu content to load...")
+        wait.until(
+            lambda driver: driver.find_elements(By.CSS_SELECTOR, "[data-testid='restaurant-menu-item']") or
+                          driver.find_elements(By.CSS_SELECTOR, "[data-testid='menuSection-title']")
+        )
+        print("Menu content detected")
     except:
-        print("Menu items not found with primary selector, continuing...")
+        print("Menu content not found with primary selectors, waiting longer...")
+        time.sleep(5)
     
     # Additional wait for content to stabilize
-    time.sleep(2)
+    time.sleep(3)
 
 
 def extract_business_info(browser: webdriver.Chrome, soup: BeautifulSoup) -> Dict:
@@ -387,16 +396,30 @@ def scroll_to_load_all_items(browser: webdriver.Chrome):
     """Scroll through the page to load all menu items."""
     print("Scrolling to load all menu items...")
     
+    # First, try to find the menu container
+    menu_container = None
+    try:
+        # Look for the main menu container
+        menu_container = browser.find_element(By.CSS_SELECTOR, "[data-test-id='virtuoso-item-list']")
+        print("Found virtualized menu container")
+    except:
+        try:
+            menu_container = browser.find_element(By.CSS_SELECTOR, "div[style*='padding-top'][style*='padding-bottom']")
+            print("Found alternative menu container")
+        except:
+            print("No specific menu container found, will scroll entire page")
+    
     last_count = 0
     stable_count = 0
-    max_attempts = 20
+    max_attempts = 30
     
     for attempt in range(max_attempts):
-        # Get current count of menu items
+        # Get current count of menu items and categories
         items = browser.find_elements(By.CSS_SELECTOR, "[data-testid='restaurant-menu-item']")
+        categories = browser.find_elements(By.CSS_SELECTOR, "[data-testid='menuSection-title']")
         current_count = len(items)
         
-        print(f"Scroll attempt {attempt + 1}: Found {current_count} items")
+        print(f"Scroll attempt {attempt + 1}: Found {len(categories)} categories, {current_count} items")
         
         if current_count == last_count:
             stable_count += 1
@@ -408,15 +431,21 @@ def scroll_to_load_all_items(browser: webdriver.Chrome):
         
         last_count = current_count
         
-        # Scroll down
-        browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(1)
+        # Multiple scroll strategies
+        if menu_container:
+            # Scroll within the container
+            browser.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", menu_container)
+        else:
+            # Scroll the entire page
+            browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        
+        time.sleep(2)
         
         # Also try scrolling up and down to trigger lazy loading
-        if attempt % 3 == 0:
-            browser.execute_script("window.scrollBy(0, -500);")
-            time.sleep(0.5)
-            browser.execute_script("window.scrollBy(0, 1000);")
+        if attempt % 2 == 0:
+            browser.execute_script("window.scrollBy(0, -300);")
+            time.sleep(1)
+            browser.execute_script("window.scrollBy(0, 600);")
             time.sleep(1)
 
 
