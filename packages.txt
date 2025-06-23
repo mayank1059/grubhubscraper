@@ -1,5 +1,4 @@
 wget
 gnupg
 unzip
-chromium-browser
-chromium-chromedriver
+chromium

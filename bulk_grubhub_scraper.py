@@ -39,7 +39,7 @@ def init_browser(headless: bool = True) -> webdriver.Chrome:
     options.add_argument("--disable-extensions")
     options.add_argument("--disable-plugins")
     options.add_argument("--disable-images")
-    options.add_argument("--disable-javascript-harmony-shipping")
+    # Note: JavaScript is required for Grubhub scraping
     options.add_argument("--disable-background-timer-throttling")
     options.add_argument("--disable-renderer-backgrounding")
     options.add_argument("--disable-backgrounding-occluded-windows")
@@ -65,39 +65,45 @@ def init_browser(headless: bool = True) -> webdriver.Chrome:
     # Window size
     options.add_argument("--window-size=1920,1080")
     
-    # Chrome binary path for deployment environments
+    # Chrome binary path for deployment environments (Debian/Streamlit Cloud)
     chrome_binary = os.environ.get('CHROME_BINARY_PATH')
     if chrome_binary:
         options.binary_location = chrome_binary
-    elif os.path.exists('/usr/bin/google-chrome-stable'):
-        options.binary_location = '/usr/bin/google-chrome-stable'
-    elif os.path.exists('/usr/bin/google-chrome'):
-        options.binary_location = '/usr/bin/google-chrome'
+        print(f"Using Chrome binary from env: {chrome_binary}")
     elif os.path.exists('/usr/bin/chromium'):
         options.binary_location = '/usr/bin/chromium'
+        print("Using Debian Chromium: /usr/bin/chromium")
+    elif os.path.exists('/usr/bin/google-chrome-stable'):
+        options.binary_location = '/usr/bin/google-chrome-stable'
+        print("Using Google Chrome stable")
+    elif os.path.exists('/usr/bin/google-chrome'):
+        options.binary_location = '/usr/bin/google-chrome'
+        print("Using Google Chrome")
     elif os.path.exists('/usr/bin/chromium-browser'):
         options.binary_location = '/usr/bin/chromium-browser'
+        print("Using Chromium browser")
     
-    # ChromeDriver setup for Streamlit Cloud
+    # ChromeDriver setup for Streamlit Cloud (Debian)
     try:
         # Try to use system chromedriver first (for deployment)
         chromedriver_path = os.environ.get('CHROMEDRIVER_PATH')
         if chromedriver_path and os.path.exists(chromedriver_path):
             service = Service(chromedriver_path)
-        elif os.path.exists('/usr/bin/chromium-chromedriver'):
-            service = Service('/usr/bin/chromium-chromedriver')
+            print(f"Using ChromeDriver from env: {chromedriver_path}")
         elif os.path.exists('/usr/bin/chromedriver'):
             service = Service('/usr/bin/chromedriver')
+            print("Using system ChromeDriver: /usr/bin/chromedriver")
         elif os.path.exists('/usr/local/bin/chromedriver'):
             service = Service('/usr/local/bin/chromedriver')
-        elif os.path.exists('/usr/bin/chromium-driver'):
-            service = Service('/usr/bin/chromium-driver')
+            print("Using local ChromeDriver: /usr/local/bin/chromedriver")
         else:
-            # Fall back to ChromeDriverManager
-            print("Using ChromeDriverManager to install driver...")
+            # Fall back to ChromeDriverManager - this will download and install
+            print("No system ChromeDriver found, using ChromeDriverManager...")
             service = Service(ChromeDriverManager().install())
+            print("✅ ChromeDriverManager installation completed")
     except Exception as e:
         print(f"ChromeDriver setup error: {e}")
+        print("Falling back to ChromeDriverManager...")
         # Final fallback
         service = Service(ChromeDriverManager().install())
     
