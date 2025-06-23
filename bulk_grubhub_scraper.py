@@ -98,29 +98,48 @@ def init_browser(headless: bool = True) -> webdriver.Chrome:
         options.binary_location = '/usr/bin/chromium-browser'
         print("Using Chromium browser")
     
-    # ChromeDriver setup using chromedriver_autoinstaller
-    print("Setting up ChromeDriver with chromedriver_autoinstaller...")
-    try:
-        driver_path = chromedriver_autoinstaller.install()
-        if driver_path:
-            service = Service(driver_path)
-            print(f"✅ Using chromedriver_autoinstaller driver at: {driver_path}")
-        else:
-            print("chromedriver_autoinstaller did not return a path, falling back...")
-            service = None
-    except Exception as auto_error:
-        print(f"chromedriver_autoinstaller failed: {auto_error}")
-        service = None
+    # 1) Prefer system-installed driver (chromium-driver package)
+    possible_system_drivers = [
+        os.environ.get('CHROMEDRIVER_PATH'),            # custom env path
+        '/usr/bin/chromedriver',                        # common symlink path
+        '/usr/lib/chromium/chromedriver',              # Debian chromium-driver path
+        '/usr/local/bin/chromedriver',                 # local install path
+    ]
     
+    service = None
+    for path in possible_system_drivers:
+        if path and os.path.exists(path):
+            print(f"Using system ChromeDriver: {path}")
+            service = Service(path)
+            break
+    
+    # 2) Try chromedriver_autoinstaller if no system driver
     if service is None:
-        print("Final fallback to fresh ChromeDriver download...")
+        print("No system driver found, trying chromedriver_autoinstaller...")
+        try:
+            driver_path = chromedriver_autoinstaller.install()
+            if driver_path and os.path.exists(driver_path):
+                print(f"chromedriver_autoinstaller installed driver at: {driver_path}")
+                service = Service(driver_path)
+            else:
+                print("chromedriver_autoinstaller failed to provide driver path.")
+        except Exception as auto_err:
+            print(f"chromedriver_autoinstaller error: {auto_err}")
+    
+    # 3) Fallback to webdriver_manager (latest)
+    if service is None:
+        print("Falling back to webdriver_manager latest download...")
         try:
             clear_chromedriver_cache()
-            service = Service(ChromeDriverManager(version="LATEST").install())
-            print("✅ Final fallback ChromeDriver installed")
-        except Exception as fallback_error:
-            print(f"Final fallback failed: {fallback_error}")
-            service = Service(ChromeDriverManager().install())
+            driver_path = ChromeDriverManager(version='LATEST').install()
+            service = Service(driver_path)
+            print(f"webdriver_manager installed driver at: {driver_path}")
+        except Exception as manager_err:
+            print(f"webdriver_manager error: {manager_err}")
+            # As a last resort try default
+            driver_path = ChromeDriverManager().install()
+            service = Service(driver_path)
+            print(f"webdriver_manager default driver at: {driver_path}")
     
     try:
         browser = webdriver.Chrome(service=service, options=options)

@@ -2,3 +2,4 @@ wget
 gnupg
 unzip
 chromium
+chromium-driver
