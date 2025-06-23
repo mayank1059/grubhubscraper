@@ -38,9 +38,21 @@ def clear_chromedriver_cache():
     return False
 
 
+def is_deployed_environment():
+    """Check if running in deployed environment (Streamlit Cloud, Heroku, etc)."""
+    # Check for common deployment environment variables
+    deployment_vars = ['STREAMLIT_RUNTIME_ENV', 'DYNO', 'KUBERNETES_SERVICE_HOST', 'RENDER']
+    return any(os.environ.get(var) for var in deployment_vars) or os.path.exists('/app') or os.path.exists('/mount/src')
+
+
 def init_browser(headless: bool = True) -> webdriver.Chrome:
     """Initialize Chrome browser with appropriate settings."""
     options = Options()
+    
+    # Detect if we're in a deployed environment
+    is_deployed = is_deployed_environment()
+    if is_deployed:
+        print("🌐 Detected deployed environment - using enhanced settings")
     
     if headless:
         options.add_argument("--headless")
@@ -183,8 +195,9 @@ def wait_for_page_load(browser: webdriver.Chrome, timeout: int = 30):
     # Wait for basic page structure
     wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
     
-    # Wait for React to load
-    time.sleep(3)
+    # Wait for React to load - longer for deployed environments
+    print("Waiting for React to initialize...")
+    time.sleep(5)
     
     # Wait for menu items or menu sections to appear
     try:
@@ -196,10 +209,16 @@ def wait_for_page_load(browser: webdriver.Chrome, timeout: int = 30):
         print("Menu content detected")
     except:
         print("Menu content not found with primary selectors, waiting longer...")
-        time.sleep(5)
+        time.sleep(8)
     
-    # Additional wait for content to stabilize
-    time.sleep(3)
+    # Additional wait for content to stabilize - longer for deployed
+    time.sleep(5)
+    
+    # Force a scroll to trigger any lazy loading
+    browser.execute_script("window.scrollBy(0, 500)")
+    time.sleep(2)
+    browser.execute_script("window.scrollTo(0, 0)")
+    time.sleep(2)
 
 
 def extract_business_info(browser: webdriver.Chrome, soup: BeautifulSoup) -> Dict:
@@ -412,7 +431,14 @@ def scroll_to_load_all_items(browser: webdriver.Chrome):
     
     last_count = 0
     stable_count = 0
-    max_attempts = 30
+    max_attempts = 50  # More attempts for deployed environment
+    
+    # Initial aggressive scroll to bottom
+    print("Initial scroll to bottom...")
+    browser.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+    time.sleep(3)
+    browser.execute_script("window.scrollTo(0, 0)")
+    time.sleep(2)
     
     for attempt in range(max_attempts):
         # Get current count of menu items and categories
@@ -949,6 +975,25 @@ def scrape_restaurant_data(url: str, headless: bool = True, timeout: int = 30) -
         # Extract menu with categories
         print("Extracting menu categories...")
         menu_categories = extract_menu_categories(browser, soup)
+        
+        # If we got very few items, try more aggressive scrolling
+        total_items = sum(len(items) for items in menu_categories.values())
+        if total_items < 30 and len(menu_categories) < 5:
+            print(f"⚠️ Only found {total_items} items in {len(menu_categories)} categories. Trying aggressive extraction...")
+            
+            # Scroll through entire page multiple times
+            for i in range(5):
+                browser.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+                time.sleep(3)
+                browser.execute_script("window.scrollTo(0, 0)")
+                time.sleep(2)
+            
+            # Re-parse and try again
+            soup = BeautifulSoup(browser.page_source, "html.parser")
+            menu_categories = extract_menu_categories(browser, soup)
+            
+            new_total = sum(len(items) for items in menu_categories.values())
+            print(f"After aggressive extraction: {new_total} items in {len(menu_categories)} categories")
         
         # Combine all data
         restaurant_data = {
