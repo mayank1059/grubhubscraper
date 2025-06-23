@@ -69,12 +69,14 @@ def init_browser(headless: bool = True) -> webdriver.Chrome:
     chrome_binary = os.environ.get('CHROME_BINARY_PATH')
     if chrome_binary:
         options.binary_location = chrome_binary
+    elif os.path.exists('/usr/bin/google-chrome-stable'):
+        options.binary_location = '/usr/bin/google-chrome-stable'
+    elif os.path.exists('/usr/bin/google-chrome'):
+        options.binary_location = '/usr/bin/google-chrome'
     elif os.path.exists('/usr/bin/chromium'):
         options.binary_location = '/usr/bin/chromium'
     elif os.path.exists('/usr/bin/chromium-browser'):
         options.binary_location = '/usr/bin/chromium-browser'
-    elif os.path.exists('/usr/bin/google-chrome'):
-        options.binary_location = '/usr/bin/google-chrome'
     
     # ChromeDriver setup
     try:
@@ -82,10 +84,12 @@ def init_browser(headless: bool = True) -> webdriver.Chrome:
         chromedriver_path = os.environ.get('CHROMEDRIVER_PATH')
         if chromedriver_path and os.path.exists(chromedriver_path):
             service = Service(chromedriver_path)
-        elif os.path.exists('/usr/bin/chromium-driver'):
-            service = Service('/usr/bin/chromium-driver')
+        elif os.path.exists('/usr/local/bin/chromedriver'):
+            service = Service('/usr/local/bin/chromedriver')
         elif os.path.exists('/usr/bin/chromedriver'):
             service = Service('/usr/bin/chromedriver')
+        elif os.path.exists('/usr/bin/chromium-driver'):
+            service = Service('/usr/bin/chromium-driver')
         else:
             # Fall back to ChromeDriverManager
             service = Service(ChromeDriverManager().install())
